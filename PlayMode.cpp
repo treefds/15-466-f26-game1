@@ -8,6 +8,9 @@
 
 #include <random>
 
+// my assets
+#include "Assets.hpp"
+
 PlayMode::PlayMode() {
 	//TODO:
 	// you *must* use an asset pipeline of some sort to generate tiles.
@@ -48,60 +51,22 @@ PlayMode::PlayMode() {
 		}
 	}
 
-	//use sprite 32 as a "player":
-	ppu.tile_table[32].bit0 = {
-		0b01111110,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b01111110,
-	};
-	ppu.tile_table[32].bit1 = {
-		0b00000000,
-		0b00000000,
-		0b00011000,
-		0b00100100,
-		0b00000000,
-		0b00100100,
-		0b00000000,
-		0b00000000,
-	};
+	{ // OVEERRIDE the tile table with our tiles from Assets.hpp...
+		// for every single tile (0-255)
+		for (uint32_t index = 0; index < 16 * 16; ++index) {
+			PPU466::Tile tile;
+			tile.bit0 = SPRITESHEET_TILES_0[index];
+			tile.bit1 = SPRITESHEET_TILES_1[index];
+			ppu.tile_table[index] = tile;
+		}
 
-	//makes the outside of tiles 0-16 solid:
-	ppu.palette_table[0] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//makes the center of tiles 0-16 solid:
-	ppu.palette_table[1] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//used for the player:
-	ppu.palette_table[7] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
-
-	//used for the misc other sprites:
-	ppu.palette_table[6] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	};
-
+		// for every color. ONLY 8 COLORS
+		// hardcoded magic number here; if it got wrong, we will have fancy buffer overflow glitches
+		// just like NES !? 
+		for (uint32_t index = 0; index < 8; ++index) {
+			ppu.palette_table[index] = SPRITESHEET_PALETTE_TABLE[index];
+		}
+	}
 }
 
 PlayMode::~PlayMode() {

@@ -9,3 +9,4 @@ dist/game.exe
 maek-cache.json
 
 .vscode/*
+.*.kra

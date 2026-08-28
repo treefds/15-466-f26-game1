@@ -1,8 +1,8 @@
 # (TODO: your game's title)
 
-Author: (TODO: your name)
+Author: Runkun Chen (runkunc)
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: A sokoban puzzle game about crushing lemons into ice cubes on slippery surface.
 
 Screen Shot:
 
