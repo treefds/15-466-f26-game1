@@ -10,29 +10,34 @@ requires numpy, PIL
 import numpy as np
 from PIL import Image
 
+# ----------------------- BUILD SPRITESHEET ------------------------- #
+
+
 SPRITESHEET_PATH = "./sprites/spritesheet.png"   # The sprites
 COLORSHEET_PATH = "./sprites/colorsheet.png"     # Region indicators for indexing sprite colors
-
-
-
-CODE_TEMPLATE = """\
+CODE_TEMPLATE_SPRITE = """\
 #include <vector>
 #include "PPU466.hpp"
 
-// The spritesheet bitplane 0
-const std::array<std::array< uint8_t, 8 >, 16 * 16> SPRITESHEET_TILES_0 = {{{{
+namespace Assets {{
+    // The spritesheet bitplane 0
+    const std::array<std::array< uint8_t, 8 >, 16 * 16> SPRITESHEET_TILES_0 = {{{{
 {}
-}}}};
+    }}}};
 
-// The spritesheet bitplane 1
-const std::array<std::array< uint8_t, 8 >, 16 * 16> SPRITESHEET_TILES_1 = {{{{
+    // The spritesheet bitplane 1
+    const std::array<std::array< uint8_t, 8 >, 16 * 16> SPRITESHEET_TILES_1 = {{{{
 {}
-}}}};
+    }}}};
 
-// The palette table
-const std::array<PPU466::Palette, 8UL> SPRITESHEET_PALETTE_TABLE = {{{{
+    // The palette table
+    const std::array<PPU466::Palette, 8UL> SPRITESHEET_PALETTE_TABLE = {{{{
 {}
-}}}};
+    }}}};
+
+{}
+}}
+
 """
 
 # {
@@ -57,10 +62,10 @@ PALETTE_NAMES = {
 
 PALETTE_REV = {v:k for k, v in PALETTE_NAMES.items()}
 
-PALETTE: dict = {}
+palette: dict = {}
 
 
-def main():
+def build_sprite_assets_code() -> str:
 
     # Read the image files. Image shape = (128, 128, 4)
     with Image.open(SPRITESHEET_PATH) as image:
@@ -79,7 +84,7 @@ def main():
         assert len(palette_colors) == 4, (PALETTE_NAMES[ makecolor(color) ], palette_colors)
 
         color: np.ndarray
-        PALETTE[PALETTE_NAMES[ makecolor(color) ]] = [
+        palette[PALETTE_NAMES[ makecolor(color) ]] = [
             c for c in palette_colors
         ]
 
@@ -87,7 +92,7 @@ def main():
     # Make the new sheet (2bit colors)
     new_sheet = np.zeros((128, 128), np.uint8)
     for coloridx in color_regions:
-        for i, palcolor in enumerate(PALETTE[PALETTE_NAMES[ makecolor(coloridx) ]]):
+        for i, palcolor in enumerate(palette[PALETTE_NAMES[ makecolor(coloridx) ]]):
             mask = np.all(colorsheet == coloridx, axis=-1) & np.all(spritesheet == palcolor, axis=-1)
             new_sheet[mask] = i
 
@@ -121,40 +126,149 @@ def main():
     # Part 2, build strings
 
     codestring_0 = "\n".join(
-        "\t{{ {} }},".format(",".join([str(v) for v in tilebits])) for tilebits in tiles_0
+        "\t\t{{ {} }},".format(",".join([str(v) for v in tilebits])) for tilebits in tiles_0
     )
 
     codestring_1 = "\n".join(
-        "\t{{ {} }},".format(",".join([str(v) for v in tilebits])) for tilebits in tiles_1
+        "\t\t{{ {} }},".format(",".join([str(v) for v in tilebits])) for tilebits in tiles_1
     )
 
     # functional programming!
     # easy to write, hard to read! maybe not stupid code, but I argue yes!!!
     colorstring = "\n".join([   # FOR every palette in ALL palettes
-        "\t{{ {} }},".format(
+        "\t\t{{ {} }},".format(
             " ".join([          # FOR every color in THE palette
                 "glm::u8vec4( {} ),".format(
                     # RGBA
                     ",".join(str(int(v)) for v in color_ndarray)
                 )  for color_ndarray in palette_ndarrays
             ])
-        ) for palette_ndarrays in PALETTE.values()
+        ) for palette_ndarrays in palette.values()
     ])
-    print(colorstring)
 
-    
-    full_hpp_code = CODE_TEMPLATE.format(codestring_0, codestring_1, colorstring)
-
-    with open("Assets.hpp", 'w') as f:
-        f.write(full_hpp_code)
+    # Part 3. Color names
+    colordefs = '\n'.join([f"\tconst uint32_t BCOL_{palette_name} = {i << 8};" for i, palette_name in enumerate(palette.keys())])
+        
 
 
+    sprite_hpp_code = CODE_TEMPLATE_SPRITE.format(codestring_0, codestring_1, colorstring, colordefs)
+    return sprite_hpp_code
+
+# ----------------------- BUILD LEVEL ----------------------- #
+
+# Levels to build
+LEVEL_PATH_DICT = {
+    "LV03": "sprites/levels/map_hard.png"
+}
+
+# Level tile definition
+TILE_DEF = {
+    (178, 82, 102): 0,    # VOID
+    (39, 137, 205): 1,    # ICE
+    (255, 255, 255): 2,   # SNOW
+    (5, 4, 3): 3          # WALL
+}
+
+# Level entity definition
+ENTITY_DEF = {
+    # (0, 0, 0): 255,        # VOID
+    (115, 239, 232): 0,   # CUBE
+    (255, 240, 137): 1,   # LEMON
+    (185, 69, 29): 2      # PLAYER
+}
 
 
+CODE_TEMPLATE_MAP = """\
+#include <vector>
+
+namespace Levels {{
+{}
+}}
+"""
+
+CODE_TEMPLATE_ONE_MAP_DEF = """\
+const std::array<uint8_t, 15 * 16> MAP_LEVEL_{} = {{{{
+{}
+}}}};
+"""
+
+CODE_TEMPLATE_ENTITY_LIST_DEF = """\
+const std::array<std::array< uint8_t, 3>, 16> ENTITY_LIST_LEVEL_{} = {{{{
+{}
+}}}};
+"""
+
+
+def build_level_code() -> str:
+
+    all_defs = []
+    for level_id, level_path in LEVEL_PATH_DICT.items():
+        level_image = np.array(Image.open(level_path))
+        map_image = level_image[:15, :, :]    # Upper half
+        entity_image = level_image[15:, :, :] # Lower half
+
+        map_def = np.zeros((15, 16), dtype=np.uint8)
+
+        # Convert to tile ids
+        for tilecolor, tileid in TILE_DEF.items():
+            map_def[np.all(map_image == unmakecolor(tilecolor), axis=-1)] = tileid
+
+        entities = []
+
+        # Convert to entity lists
+        for y in range(15):
+            for x in range(16):
+                colortuple = makecolor(entity_image[14 - y, x])
+                if colortuple in ENTITY_DEF:
+                    entities.append((x, y, ENTITY_DEF[colortuple]))
+
+        # Create the map definition code
+        lines = []
+        for y in range(15):
+            line = ', '.join([str(int(v)) for v in map_def[14 - y]]) + ','
+            lines.append(line)
+        code_map_def = CODE_TEMPLATE_ONE_MAP_DEF.format(level_id, '\t' + '\n\t'.join(lines))
+
+        # Create the entity definition code
+        # The entity definition list is hardcoded to be length 16; but it doesn't have to
+        # (and, in fact, cannot) use up all of them. Ones unused shall be left (0, 0, 255)
+        
+        entity_inj = "\n".join([
+            "{{ {} }},".format(", ".join([str(v) for v in entity]))
+            for entity in entities
+        ])
+        code_entity_def = CODE_TEMPLATE_ENTITY_LIST_DEF.format(level_id, entity_inj)
+
+        one_def = code_map_def + '\n\n' + code_entity_def
+
+        all_defs.append(one_def)
+
+    inj = "\n\n".join(all_defs)
+    inj = '\n'.join(['\t' + s for s in inj.split("\n")])
+
+    level_hpp_code = CODE_TEMPLATE_MAP.format(inj)
+    return level_hpp_code
+
+
+
+# -------------------- helpers ---------------------- #
 
 def makecolor(rgba_color) -> tuple:
     return tuple([int(c) for c in rgba_color[:3]])
 
+def unmakecolor(tuple_color) -> np.ndarray:
+    return np.array([v for v in tuple_color] + [255 if sum(tuple_color) > 0 else 0], dtype=np.uint8)
+
+def main():
+
+    sprite_hpp_code = build_sprite_assets_code()
+    level_hpp_code = build_level_code()
+
+    with open("Assets.hpp", 'w') as f:
+        f.write(sprite_hpp_code)
+
+    with open("GameLevels.hpp", 'w') as f:
+            f.write(level_hpp_code)
 
 if __name__ == "__main__":
     main()
