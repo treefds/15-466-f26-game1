@@ -193,7 +193,7 @@ const std::array<uint8_t, 15 * 16> MAP_LEVEL_{} = {{{{
 """
 
 CODE_TEMPLATE_ENTITY_LIST_DEF = """\
-const std::array<std::array< uint8_t, 3>, 16> ENTITY_LIST_LEVEL_{} = {{{{
+const std::vector<std::array< uint8_t, 3>> ENTITY_LIST_LEVEL_{} = {{{{
 {}
 }}}};
 """

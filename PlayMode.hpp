@@ -14,14 +14,21 @@ struct Entity {
 	Entity(int etype, int x, int y);
 	~Entity();
 
+	// Reposing the sprites.
+	void repose(float time);
+
 	// ----- states ------
 	// 0 = cube; 1 = lemon; 2 = player
 	int entity_type = 0;
+	// shared flag, used by icecubes/lemons to indicate aliveness; player facing.
+	int flag = 0;
 	// position in grid
 	int grid_x;
 	int grid_y;
 	// display position, interpolated during draw
 	glm::vec2 display_pos = glm::vec2(0.0f);
+
+	std::vector<PPU466::Sprite> sprites;
 };
 
 struct WorldMap {
@@ -64,6 +71,7 @@ struct PlayMode : Mode {
 
 	//entities and maps
 	WorldMap map;
+	std::vector<Entity> entities = { };
 
 	//----- drawing handled by PPU466 -----
 

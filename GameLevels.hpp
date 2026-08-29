@@ -20,7 +20,7 @@ namespace Levels {
 	}};
 	
 	
-	const std::array<std::array< uint8_t, 3>, 16> ENTITY_LIST_LEVEL_LV03 = {{
+	const std::vector<std::array< uint8_t, 3>> ENTITY_LIST_LEVEL_LV03 = {{
 	{ 7, 3, 2 },
 	{ 7, 6, 1 },
 	{ 3, 8, 0 },
