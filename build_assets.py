@@ -10,6 +10,15 @@ requires numpy, PIL
 import numpy as np
 from PIL import Image
 
+# Levels to build
+LEVEL_PATH_DICT = {
+    "LV01": "sprites/levels/map_tutorial.png",
+    "LV02": "sprites/levels/map_hard.png",
+    "LV03": "sprites/levels/map_last.png",
+    "LV04": "sprites/levels/map_bonus.png"
+}
+
+
 # ----------------------- BUILD SPRITESHEET ------------------------- #
 
 
@@ -155,11 +164,6 @@ def build_sprite_assets_code() -> str:
     return sprite_hpp_code
 
 # ----------------------- BUILD LEVEL ----------------------- #
-
-# Levels to build
-LEVEL_PATH_DICT = {
-    "LV03": "sprites/levels/map_hard.png"
-}
 
 # Level tile definition
 TILE_DEF = {

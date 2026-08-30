@@ -15,7 +15,7 @@ struct Entity {
 	~Entity();
 
 	// Reposing the sprites.
-	void repose(float time);
+	void repose(float time, int facing);
 
 	// Step position.
 	void step_pos(float elapsed);
@@ -38,6 +38,7 @@ struct Entity {
 struct WorldMap {
 	// The world map; tilemap, plus helpers
 	WorldMap();
+	WorldMap(int level_index);
 	// ~WorldMap();
 
 	// ------ data ------
@@ -58,7 +59,7 @@ struct PlayMode : Mode {
 
 	// helpers
 	void redraw_background();
-	void reset_level();
+	void reset_level(int level_index);
 
 	//----- game state -----
 
@@ -73,6 +74,7 @@ struct PlayMode : Mode {
 	float winning_timer = 0.0f;
 
 	//entities and maps
+	int current_level = 1;
 	WorldMap map;
 	std::vector<Entity> entities = { };
 	std::vector<int> entity_moving = { };

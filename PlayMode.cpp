@@ -51,12 +51,12 @@ Entity::Entity(int etype, int x, int y) {
 	} else if (entity_type == 2) {
 		// Player
 		sprites = std::vector<PPU466::Sprite>(11);
-		sprites[0].index = 56;   // topleft
-		sprites[1].index = 57;
-		sprites[2].index = 72;
-		sprites[3].index = 73;
-		sprites[4].index = 88;
-		sprites[5].index = 89;   // bottom-right
+		sprites[0].index = 58;   // topleft
+		sprites[1].index = 59;
+		sprites[2].index = 74;
+		sprites[3].index = 75;
+		sprites[4].index = 90;
+		sprites[5].index = 91;   // bottom-right
 		sprites[6].index = 76;   // face
 		sprites[7].index = 93;   // left hand
 		sprites[8].index = 93;   // right hand
@@ -72,7 +72,7 @@ Entity::~Entity() {
 }
 
 // The repose function! Reposes the sprites based on entity's positions, etc.
-void Entity::repose(float time) {
+void Entity::repose(float time, int facing = 0) {
 	if (entity_type == 0) {
 		// Ice cube
 		assert(sprites.size() == 6);
@@ -116,9 +116,67 @@ void Entity::repose(float time) {
 		sprites[1].x = sprites[3].x = sprites[5].x = sprites[8].x = sprites[10].x = display_pos.x + 8.0;
 		sprites[0].y = sprites[1].y = display_pos.y + 16.0;
 		sprites[2].y = sprites[3].y = display_pos.y + 8.0;
-		sprites[7].y = sprites[8].y = display_pos.y + 7.0;
+		sprites[7].y = sprites[8].y = display_pos.y + 6.0;
 		sprites[4].y = sprites[5].y = sprites[9].y = sprites[10].y = display_pos.y;
 		sprites[6].x = display_pos.x + 4.0, sprites[6].y = display_pos.y + 12.0;
+
+		// give the hands a small animation
+		sprites[7].x -= 3;
+		sprites[8].x += 3;
+		if (static_cast<int>(time * 20) % 30 <= 10) {
+			sprites[7].y += 1;
+		}
+		if (static_cast<int>(time * 20) % 30 >= 2 && static_cast<int>(time * 20) % 30 <= 12) {
+			sprites[8].y += 1;
+		}
+
+		// FACING.
+		// If the player is moving up, make face invisible; else, show according to facing.
+		// Key: 1 = +X, 2 = +Y, 3 = -X, 4 = -Y
+		if (flag == 1 || flag == 4) {
+			sprites[6].index = 76;
+		} else if (flag == 3) {
+			sprites[6].index = 77;
+		} else if (flag == 2) {
+			sprites[6].index = 61;
+		}
+		if (flag == 2) {
+			sprites[0].index = 56;   // topleft
+			sprites[1].index = 57;
+			sprites[2].index = 72;
+			sprites[3].index = 73;
+			sprites[4].index = 88;
+			sprites[5].index = 89;   // bottom-right
+		} else if (flag != 0) {
+			sprites[0].index = 58;   // topleft
+			sprites[1].index = 59;
+			sprites[2].index = 74;
+			sprites[3].index = 75;
+			sprites[4].index = 90;
+			sprites[5].index = 91;   // bottom-right
+		}
+
+		// if the player is moving, animate the foot
+		if (std::abs(grid_x * 16.0f - display_pos.x) > 0.01f) {
+			int salt = static_cast<int>(std::abs(grid_x * 16.0f - display_pos.x) / 5.0f) % 3;
+			if (salt == 1) {
+				sprites[9].y += 1;
+			}
+			if (salt == 2) {
+				sprites[10].y += 1;
+			}
+		}
+		if (std::abs(grid_y * 16.0f - display_pos.y) > 0.01f) {
+			int salt = static_cast<int>(std::abs(grid_y * 16.0f - display_pos.y) / 5.0f) % 3;
+			if (salt == 1) {
+				sprites[9].y += 1;
+			}
+			if (salt == 2) {
+				sprites[10].y += 1;
+			}
+		}
+		
+
 		if (submerged) {
 			sprites[4].index = sprites[5].index = sprites[9].index = sprites[10].index = 255;
 		}
@@ -141,28 +199,27 @@ void Entity::step_pos(float elapsed) {
 	}
 }
 
-
 WorldMap::WorldMap() {
-	// hardcoded to read LV03
-	// std::array<uint8_t, 15 * 16> map = { };
 
-	map = Levels::MAP_LEVEL_LV03;
+}
+
+WorldMap::WorldMap(int level_index) {
+	// hardcoded to read LV02
+	// std::array<uint8_t, 15 * 16> map = { };
+	if (level_index == 1)
+		map = Levels::MAP_LEVEL_LV01;
+	else if (level_index == 2)
+		map = Levels::MAP_LEVEL_LV02;
+	else if (level_index == 3)
+		map = Levels::MAP_LEVEL_LV03;
+	else if (level_index == 4)
+		map = Levels::MAP_LEVEL_LV04;
 }
 
 
 
 
 PlayMode::PlayMode() {
-	//TODO:
-	// you *must* use an asset pipeline of some sort to generate tiles.
-	// don't hardcode them like this!
-	// or, at least, if you do hardcode them like this,
-	//  make yourself a script that spits out the code that you paste in here
-	//   and check that script into your repository.
-
-	//Also, *don't* use these tiles in your game:
-
-	// XXX: TO REMOVE
 	{ //use tiles 0-16 as some weird dot pattern thing:
 		std::array< uint8_t, 8*8 > distance;
 		for (uint32_t y = 0; y < 8; ++y) {
@@ -212,14 +269,7 @@ PlayMode::PlayMode() {
 
 	{ // STEP 2: read the levels, make map, draw the background
 		// use default constructor
-		map = WorldMap();
-
-		redraw_background();
-
-	}
-
-	{ // STEP 3: read the entities
-		reset_level();
+		reset_level(1);
 	}
 }
 
@@ -228,12 +278,38 @@ PlayMode::~PlayMode() {
 
 // Fully reset this level!
 // By reloading all entities.
-void PlayMode::reset_level() {
+void PlayMode::reset_level(int level_index) {
+	winning_timer = 0.0f;
+	map = WorldMap(level_index);
+	redraw_background();
 	entities.clear();
-	for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV03.size(); idx++) {
-		std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV03[idx];
-		entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
-		entities[entities.size() - 1].repose(0.0f);
+
+	// My attempt to use alias to make the code compact failed,
+	// so here is my spaghetti
+	if (level_index == 1) {
+		for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV01.size(); idx++) {
+			std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV01[idx];
+			entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
+			entities[entities.size() - 1].repose(0.0f);
+		}
+	} else if (level_index == 2) {
+		for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV02.size(); idx++) {
+			std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV02[idx];
+			entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
+			entities[entities.size() - 1].repose(0.0f);
+		}
+	} else if (level_index == 3) {
+		for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV03.size(); idx++) {
+			std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV03[idx];
+			entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
+			entities[entities.size() - 1].repose(0.0f);
+		}
+	} else if (level_index == 4) {
+		for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV04.size(); idx++) {
+			std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV04[idx];
+			entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
+			entities[entities.size() - 1].repose(0.0f);
+		}
 	}
 
 	entity_moving = std::vector<int>(entities.size());
@@ -460,7 +536,7 @@ void PlayMode::update(float elapsed) {
 			for (Entity& entity: entities) {
 				if (map.map[entity.grid_y * GRID_W + entity.grid_x] == 0) {
 					entity.submerged = true;
-					if (entity.entity_type == 2) {
+					if (entity.entity_type != 0) {
 						level_ended = true;
 						input_allowed = false;
 					}
@@ -480,21 +556,21 @@ void PlayMode::update(float elapsed) {
 
 			if (input_allowed) {
 				if (left.pressed) {
-					std::cout << "left" << std::endl;
 					entity_moving[player_idx] = 3;
+					entities[player_idx].flag = 3;
 				} else if (right.pressed) {
-					std::cout << "right" << std::endl;
 					entity_moving[player_idx] = 1;
+					entities[player_idx].flag = 1;
 				} else if (down.pressed) {
-					std::cout << "down" << std::endl;
 					entity_moving[player_idx] = 4;
+					entities[player_idx].flag = 4;
 				} else if (up.pressed) {
-					std::cout << "up" << std::endl;
 					entity_moving[player_idx] = 2;
+					entities[player_idx].flag = 2;
 				} else if (reset.pressed) {
 					std::cout << "reset game!!" << std::endl;
 					// RESET GAME
-					reset_level();
+					reset_level(current_level);
 				}
 			}
 
@@ -502,7 +578,7 @@ void PlayMode::update(float elapsed) {
 				if (reset.pressed) {
 					std::cout << "reset game!!" << std::endl;
 					// RESET GAME
-					reset_level();
+					reset_level(current_level);
 				}
 			}
 
@@ -609,8 +685,12 @@ void PlayMode::update(float elapsed) {
 	up.downs = 0;
 	down.downs = 0;
 
-
-
+	// If winning timer > 4.0s, jump to next level
+	if (winning_timer > 4.0) {
+		current_level += 1;
+		reset_level(current_level);
+		winning_timer = 0.0;
+	}
 
 }
 
@@ -633,7 +713,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		// sort `order` based on entities grid y. Results in 
 		std::sort(order.begin(), order.end(), [&](const uint32_t& a, const uint32_t& b) {
-			return entities[a].grid_y > entities[b].grid_y || (entities[a].grid_y == entities[b].grid_y && entities[b].entity_type == 1);
+			// special case: when lemon and cube overlaps, prioritize cube
+			return entities[a].grid_y > entities[b].grid_y || (entities[a].grid_y == entities[b].grid_y && entities[b].entity_type == 2);
 		});
 
 		// Step 3. drawing. 
@@ -641,7 +722,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// to store sprites! So we process them in the dedicated objects, then copy them to PPU.
 		int pt = 0;
 		for (uint32_t idx: order) {
-			entities[idx].repose(anim_timer);    // 0.0f is a temporary number
+			entities[idx].repose(anim_timer, entity_moving[idx]);    // 0.0f is a temporary number
 			for (PPU466::Sprite spr: entities[idx].sprites) {
 				if (pt >= 64) break;      // reached limit, stop drawing
 				ppu.sprites[pt] = spr;
@@ -672,6 +753,18 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				ppu.background[28 * PPU466::BackgroundWidth + x + 8] = 128 + x;
 				ppu.background[27 * PPU466::BackgroundWidth + x + 8] = 144 + x;
 				ppu.background[26 * PPU466::BackgroundWidth + x + 8] = 160 + x;
+			}
+		}
+
+		// Step 4c. thanks for playing screen
+		if (current_level == 4) {
+			for (int x = 0; x < 16; x++) {
+				ppu.background[28 * PPU466::BackgroundWidth + x + 8] = 128 + x;
+				ppu.background[27 * PPU466::BackgroundWidth + x + 8] = 144 + x;
+				ppu.background[26 * PPU466::BackgroundWidth + x + 8] = 160 + x;
+			}
+			for (int x = 1; x < 6; x++) {
+				ppu.background[27 * PPU466::BackgroundWidth + x + 8] = 240 + x;
 			}
 		}
 	}
