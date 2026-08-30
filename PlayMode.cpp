@@ -83,6 +83,7 @@ void Entity::repose(float time, int facing = 0) {
 		sprites[4].y = sprites[5].y = display_pos.y;
 		if (submerged) {
 			sprites[4].index = sprites[5].index = 255;
+			for (PPU466::Sprite& sprite: sprites) sprite.y -= 1 + static_cast<int>(time) % 2;
 		}
 	} else if (entity_type == 1) {
 		// Lemon
@@ -107,6 +108,7 @@ void Entity::repose(float time, int facing = 0) {
 		}
 		if (submerged) {
 			sprites[2].index = sprites[3].index = 255;
+			for (PPU466::Sprite& sprite: sprites) sprite.y -= 1;
 		}
 
 	} else if (entity_type == 2) {
@@ -179,6 +181,7 @@ void Entity::repose(float time, int facing = 0) {
 
 		if (submerged) {
 			sprites[4].index = sprites[5].index = sprites[9].index = sprites[10].index = 255;
+			for (PPU466::Sprite& sprite: sprites) sprite.y -= 1;
 		}
 	}
 }
@@ -280,6 +283,7 @@ PlayMode::~PlayMode() {
 // By reloading all entities.
 void PlayMode::reset_level(int level_index) {
 	winning_timer = 0.0f;
+	game_lost = false;
 	map = WorldMap(level_index);
 	redraw_background();
 	entities.clear();
@@ -378,35 +382,36 @@ void PlayMode::redraw_background() {
 				// override: autoconnect
 				// below are hardcoded corner handling. c.f. spritesheet
 				bool _top = is_top(gx, gy), _bottom = is_bottom(gx, gy), _left = is_left(gx, gy), _right = is_right(gx, gy);
-				if (_top && _left) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 18 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 2 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 3 | Assets::BCOL_LAND;
-				} else if (_top && _right) {
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 20 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 3 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 4 | Assets::BCOL_LAND;
-				} else if (_top) {
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 3 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 3 | Assets::BCOL_LAND;
-				} else if (_bottom && _left) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 34 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 35 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 18 | Assets::BCOL_LAND;
-				} else if (_bottom && _right) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 35 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 36 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 20 | Assets::BCOL_LAND;
-				} else if (_bottom) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 35 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 35 | Assets::BCOL_LAND;
-				} else if (_left) {
+
+				if (_left) {
 					ppu.background[to_ppu_tile(gx, gy, 0)] = 18 | Assets::BCOL_LAND;
 					ppu.background[to_ppu_tile(gx, gy, 2)] = 18 | Assets::BCOL_LAND;
-				} else if (_right) {
+				}
+				if (_right) {
 					ppu.background[to_ppu_tile(gx, gy, 1)] = 20 | Assets::BCOL_LAND;
 					ppu.background[to_ppu_tile(gx, gy, 3)] = 20 | Assets::BCOL_LAND;
 				}
+				if (_top) {
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 3 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 3 | Assets::BCOL_LAND;
+				}
+				if (_bottom) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 35 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 35 | Assets::BCOL_LAND;
+				} 
+				if (_top && _left) {
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 2 | Assets::BCOL_LAND;
+				}
+				if (_top && _right) {
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 4 | Assets::BCOL_LAND;
+				}
+				if (_bottom && _left) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 34 | Assets::BCOL_LAND;
+				}
+				if (_bottom && _right) {
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 36 | Assets::BCOL_LAND;
+				} 
+
 			} else if (map.map[gy * GRID_W + gx] == 3) {
 				ppu.background[to_ppu_tile(gx, gy, 0)] = 80 | Assets::BCOL_WALL;
 				ppu.background[to_ppu_tile(gx, gy, 1)] = 81 | Assets::BCOL_WALL;
@@ -420,34 +425,33 @@ void PlayMode::redraw_background() {
 
 				// autoconnecting
 				bool _top = is_top(gx, gy, 0), _bottom = is_bottom(gx, gy, 0), _left = is_left(gx, gy, 0), _right = is_right(gx, gy, 0);
+				if (_top) {
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 6 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 6 | Assets::BCOL_LAND;
+				}
+				if (_bottom) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 38 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 38 | Assets::BCOL_LAND;
+				}
+				if (_left) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 21 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 21 | Assets::BCOL_LAND;
+				}
+				if (_right) {
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 23 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 23 | Assets::BCOL_LAND;
+				}
 				if (_top && _left) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 21 | Assets::BCOL_LAND;
 					ppu.background[to_ppu_tile(gx, gy, 2)] = 5 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 6 | Assets::BCOL_LAND;
-				} else if (_top && _right) {
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 23 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 6 | Assets::BCOL_LAND;
+				}
+				if (_top && _right) {
 					ppu.background[to_ppu_tile(gx, gy, 3)] = 7 | Assets::BCOL_LAND;
-				} else if (_top) {
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 6 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 6 | Assets::BCOL_LAND;
-				} else if (_bottom && _left) {
+				}
+				if (_bottom && _left) {
 					ppu.background[to_ppu_tile(gx, gy, 0)] = 37 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 38 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 21 | Assets::BCOL_LAND;
-				} else if (_bottom && _right) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 38 | Assets::BCOL_LAND;
+				}
+				if (_bottom && _right) {
 					ppu.background[to_ppu_tile(gx, gy, 1)] = 39 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 23 | Assets::BCOL_LAND;
-				} else if (_bottom) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 38 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 38 | Assets::BCOL_LAND;
-				} else if (_left) {
-					ppu.background[to_ppu_tile(gx, gy, 0)] = 21 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 2)] = 21 | Assets::BCOL_LAND;
-				} else if (_right) {
-					ppu.background[to_ppu_tile(gx, gy, 1)] = 23 | Assets::BCOL_LAND;
-					ppu.background[to_ppu_tile(gx, gy, 3)] = 23 | Assets::BCOL_LAND;
 				}
 			}
 		}
@@ -538,6 +542,7 @@ void PlayMode::update(float elapsed) {
 					entity.submerged = true;
 					if (entity.entity_type != 0) {
 						level_ended = true;
+						game_lost = true;
 						input_allowed = false;
 					}
 				}
@@ -740,6 +745,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			for (int y = 0; y < 3; y++) {
 				for (int x = 0; x < 10; x++) {
 					ppu.background[y * PPU466::BackgroundWidth + x] = 16 * (13 - y) + x;
+					if (game_lost && static_cast<int>(anim_timer * 2) % 3 > 0) ppu.background[y * PPU466::BackgroundWidth + x] |= Assets::BCOL_FROSTY;
 				}
 			}
 		}

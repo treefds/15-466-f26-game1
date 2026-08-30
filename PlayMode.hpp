@@ -75,6 +75,7 @@ struct PlayMode : Mode {
 
 	//entities and maps
 	int current_level = 1;
+	bool game_lost = false;
 	WorldMap map;
 	std::vector<Entity> entities = { };
 	std::vector<int> entity_moving = { };
