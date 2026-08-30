@@ -9,15 +9,11 @@ requires numpy, PIL
 
 import numpy as np
 from PIL import Image
+import json
 
 # Levels to build
-LEVEL_PATH_DICT = {
-    "LV01": "sprites/levels/map_tutorial.png",
-    "LV02": "sprites/levels/map_hard.png",
-    "LV03": "sprites/levels/map_last.png",
-    "LV04": "sprites/levels/map_bonus.png"
-}
-
+with open("sprites/levels/levels.json", 'r') as f:
+    LEVEL_PATH_DICT = json.load(f)
 
 # ----------------------- BUILD SPRITESHEET ------------------------- #
 
@@ -157,7 +153,14 @@ def build_sprite_assets_code() -> str:
 
     # Part 3. Color names
     colordefs = '\n'.join([f"\tconst uint32_t BCOL_{palette_name} = {i << 8};" for i, palette_name in enumerate(palette.keys())])
-        
+
+    # Part 4. Animation sheet def
+    with open("sprites/sprite_def.json") as f:
+        animation_sheet_table = json.load(f)
+
+    CODE_TEMPLATE_ANIM_DEF = "  const std::array<uint32_t, {}> ANIM_DEF_{} = {{{{ {} }}}};"
+    res = [CODE_TEMPLATE_ANIM_DEF.format(len(values), key, ", ".join([str(v) for v in values])) for key, values in animation_sheet_table.items()]
+    colordefs += '\n\n' + '\n'.join(res)
 
 
     sprite_hpp_code = CODE_TEMPLATE_SPRITE.format(codestring_0, codestring_1, colorstring, colordefs)

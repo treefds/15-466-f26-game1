@@ -1,0 +1,8 @@
+{
+    "LV01": "sprites/levels/map_tutorial.png",
+    "LV02": "sprites/levels/map_hard.png",
+    "LV03": "sprites/levels/map_last.png",
+    "LV04": "sprites/levels/map_float.png",
+    "LV05": "sprites/levels/map_sum.png",
+    "LV06": "sprites/levels/map_bonus.png"
+}

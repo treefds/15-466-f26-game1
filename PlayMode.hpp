@@ -25,6 +25,7 @@ struct Entity {
 	int entity_type = 0;
 	// shared flag, used by icecubes/lemons to indicate aliveness; player facing.
 	int flag = 0;
+	int moving = 0;
 	bool submerged = false;
 	// position in grid
 	int grid_x;
@@ -62,12 +63,13 @@ struct PlayMode : Mode {
 	void reset_level(int level_index);
 
 	//----- game state -----
+	const int total_level = 6;
 
 	//input tracking:
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up, reset;
+	} left, right, down, up, reset, skip;
 
 	//some animation timers
 	float anim_timer = 0.0f;
