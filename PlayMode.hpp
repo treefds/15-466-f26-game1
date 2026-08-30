@@ -17,11 +17,15 @@ struct Entity {
 	// Reposing the sprites.
 	void repose(float time);
 
+	// Step position.
+	void step_pos(float elapsed);
+
 	// ----- states ------
 	// 0 = cube; 1 = lemon; 2 = player
 	int entity_type = 0;
 	// shared flag, used by icecubes/lemons to indicate aliveness; player facing.
 	int flag = 0;
+	bool submerged = false;
 	// position in grid
 	int grid_x;
 	int grid_y;
@@ -54,6 +58,7 @@ struct PlayMode : Mode {
 
 	// helpers
 	void redraw_background();
+	void reset_level();
 
 	//----- game state -----
 
@@ -61,17 +66,16 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, up, reset;
 
-	//some weird background animation:
-	float background_fade = 0.0f;
-
-	//player position:
-	glm::vec2 player_at = glm::vec2(0.0f);
+	//some animation timers
+	float anim_timer = 0.0f;
+	float winning_timer = 0.0f;
 
 	//entities and maps
 	WorldMap map;
 	std::vector<Entity> entities = { };
+	std::vector<int> entity_moving = { };
 
 	//----- drawing handled by PPU466 -----
 

@@ -81,6 +81,9 @@ void Entity::repose(float time) {
 		sprites[0].y = sprites[1].y = display_pos.y + 16.0;
 		sprites[2].y = sprites[3].y = display_pos.y + 8.0;
 		sprites[4].y = sprites[5].y = display_pos.y;
+		if (submerged) {
+			sprites[4].index = sprites[5].index = 255;
+		}
 	} else if (entity_type == 1) {
 		// Lemon
 		assert(sprites.size() == 4);
@@ -102,6 +105,9 @@ void Entity::repose(float time) {
 			sprites[3].index = 87;   // bottomright
 			for (int i = 0; i < 4; i++) sprites[i].attributes = Assets::BCOL_FROSTY >> 8;
 		}
+		if (submerged) {
+			sprites[2].index = sprites[3].index = 255;
+		}
 
 	} else if (entity_type == 2) {
 		// Player!
@@ -113,6 +119,25 @@ void Entity::repose(float time) {
 		sprites[7].y = sprites[8].y = display_pos.y + 7.0;
 		sprites[4].y = sprites[5].y = sprites[9].y = sprites[10].y = display_pos.y;
 		sprites[6].x = display_pos.x + 4.0, sprites[6].y = display_pos.y + 12.0;
+		if (submerged) {
+			sprites[4].index = sprites[5].index = sprites[9].index = sprites[10].index = 255;
+		}
+	}
+}
+
+void Entity::step_pos(float elapsed) {
+	const float speed = 60.0f;
+	if (grid_x * 16.0f - display_pos.x > 0.01f) {
+		display_pos.x = std::min(grid_x * 16.0f, display_pos.x + speed * elapsed);
+	}
+	if (grid_x * 16.0f - display_pos.x < -0.01f) {
+		display_pos.x = std::max(grid_x * 16.0f, display_pos.x - speed * elapsed);
+	}
+	if (grid_y * 16.0f - display_pos.y > 0.01f) {
+		display_pos.y = std::min(grid_y * 16.0f, display_pos.y + speed * elapsed);
+	}
+	if (grid_y * 16.0f - display_pos.y < -0.01f) {
+		display_pos.y = std::max(grid_y * 16.0f, display_pos.y - speed * elapsed);
 	}
 }
 
@@ -194,16 +219,28 @@ PlayMode::PlayMode() {
 	}
 
 	{ // STEP 3: read the entities
-		// add entities to `entities` vector
-		for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV03.size(); idx++) {
-			std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV03[idx];
-			entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
-			entities[entities.size() - 1].repose(0.0f);
-		}
+		reset_level();
 	}
 }
 
 PlayMode::~PlayMode() {
+}
+
+// Fully reset this level!
+// By reloading all entities.
+void PlayMode::reset_level() {
+	entities.clear();
+	for (uint32_t idx = 0; idx < Levels::ENTITY_LIST_LEVEL_LV03.size(); idx++) {
+		std::array<uint8_t, 3> entity_def = Levels::ENTITY_LIST_LEVEL_LV03[idx];
+		entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
+		entities[entities.size() - 1].repose(0.0f);
+	}
+
+	entity_moving = std::vector<int>(entities.size());
+	// Create a table denoting whether some entities are moving
+	for (int i = 0; i < entity_moving.size(); i++) {
+		entity_moving[i] = 0;
+	}
 }
 
 void PlayMode::redraw_background() {
@@ -221,17 +258,21 @@ void PlayMode::redraw_background() {
 	};
 
 	// autoconnect helpers
-	auto is_bottom = [&](uint32_t gx, uint32_t gy) {
-		return gy == 0 || map.map[(gy - 1) * GRID_W + gx] != 2;
+	auto is_bottom = [&](uint32_t gx, uint32_t gy, uint8_t v = 2) {
+		if (gy == 0) return false;
+		return map.map[(gy - 1) * GRID_W + gx] != v;
 	};
-	auto is_top = [&](uint32_t gx, uint32_t gy) {
-		return gy == GRID_H-1 || map.map[(gy + 1) * GRID_W + gx] != 2;
+	auto is_top = [&](uint32_t gx, uint32_t gy, uint8_t v = 2) {
+		if (gy == GRID_H-1) return false;
+		return map.map[(gy + 1) * GRID_W + gx] != v;
 	};
-	auto is_left = [&](uint32_t gx, uint32_t gy) {
-		return gx == 0 || map.map[gy * GRID_W + gx - 1] != 2;
+	auto is_left = [&](uint32_t gx, uint32_t gy, uint8_t v = 2) {
+		if (gx == 0) return false;
+		return map.map[gy * GRID_W + gx - 1] != v;
 	};
-	auto is_right = [&](uint32_t gx, uint32_t gy) {
-		return gx == GRID_W-1 || map.map[gy * GRID_W + gx + 1] != 2;
+	auto is_right = [&](uint32_t gx, uint32_t gy, uint8_t v = 2) {
+		if (gx == GRID_W - 1) return false;
+		return map.map[gy * GRID_W + gx + 1] != v;
 	};
 
 	// We are semi-automating the world drawing here (instead of specifying it in level files)
@@ -296,10 +337,42 @@ void PlayMode::redraw_background() {
 				ppu.background[to_ppu_tile(gx, gy, 2)] = 64 | Assets::BCOL_WALL;
 				ppu.background[to_ppu_tile(gx, gy, 3)] = 65 | Assets::BCOL_WALL;
 			} else {
-				ppu.background[to_ppu_tile(gx, gy, 0)] = 255;
+				ppu.background[to_ppu_tile(gx, gy, 0)] = (pepper_1 > 2 ? 22 : 255) | Assets::BCOL_LAND;
 				ppu.background[to_ppu_tile(gx, gy, 1)] = 255;
 				ppu.background[to_ppu_tile(gx, gy, 2)] = 255;
-				ppu.background[to_ppu_tile(gx, gy, 3)] = 255;
+				ppu.background[to_ppu_tile(gx, gy, 3)] = (pepper_1 > 2 ? 24 : 255) | Assets::BCOL_LAND;
+
+				// autoconnecting
+				bool _top = is_top(gx, gy, 0), _bottom = is_bottom(gx, gy, 0), _left = is_left(gx, gy, 0), _right = is_right(gx, gy, 0);
+				if (_top && _left) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 21 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 5 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 6 | Assets::BCOL_LAND;
+				} else if (_top && _right) {
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 23 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 6 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 7 | Assets::BCOL_LAND;
+				} else if (_top) {
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 6 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 6 | Assets::BCOL_LAND;
+				} else if (_bottom && _left) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 37 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 38 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 21 | Assets::BCOL_LAND;
+				} else if (_bottom && _right) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 38 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 39 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 23 | Assets::BCOL_LAND;
+				} else if (_bottom) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 38 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 38 | Assets::BCOL_LAND;
+				} else if (_left) {
+					ppu.background[to_ppu_tile(gx, gy, 0)] = 21 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 2)] = 21 | Assets::BCOL_LAND;
+				} else if (_right) {
+					ppu.background[to_ppu_tile(gx, gy, 1)] = 23 | Assets::BCOL_LAND;
+					ppu.background[to_ppu_tile(gx, gy, 3)] = 23 | Assets::BCOL_LAND;
+				}
 			}
 		}
 	}
@@ -324,6 +397,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.downs += 1;
 			down.pressed = true;
 			return true;
+		} else if (evt.key.key == SDLK_R) {
+			reset.downs += 1;
+			reset.pressed = true;
 		}
 	} else if (evt.type == SDL_EVENT_KEY_UP) {
 		if (evt.key.key == SDLK_LEFT) {
@@ -338,6 +414,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		} else if (evt.key.key == SDLK_DOWN) {
 			down.pressed = false;
 			return true;
+		} else if (evt.key.key == SDLK_R) {
+			reset.pressed = false;
+			return true;
 		}
 	}
 
@@ -345,23 +424,194 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	anim_timer += elapsed;
+	if (anim_timer > 60.0f) {
+		anim_timer -= 60.0f;
+	}
 
-	//slowly rotates through [0,1):
-	// (will be used to set background color)
-	background_fade += elapsed / 10.0f;
-	background_fade -= std::floor(background_fade);
+	{ // Handle player inputs
+		// Only handle input if the game anim interpolation is finished.
+		bool game_stable = true;
+		for (Entity& entity: entities) {
+			if (abs(entity.grid_x * 16.0f - entity.display_pos.x) > 0.01 || 
+				abs(entity.grid_y * 16.0f - entity.display_pos.y) > 0.01) {
+					// game not ready to accept input.
+					game_stable = false;
+					break;
+			}
+		}
 
-	constexpr float PlayerSpeed = 30.0f;
-	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
-	if (right.pressed) player_at.x += PlayerSpeed * elapsed;
-	if (down.pressed) player_at.y -= PlayerSpeed * elapsed;
-	if (up.pressed) player_at.y += PlayerSpeed * elapsed;
+		bool input_allowed = true;    // stopping input while game is still sliding		
+		uint32_t player_idx = -1;
+		for (int i = 0; i < entity_moving.size(); i++) {
+			if (entities[i].entity_type == 2) {
+				player_idx = i;
+			}
+			if (entity_moving[i]) input_allowed = false;
+		}
+
+		assert(player_idx != -1);
+
+		bool level_ended = false;
+
+		if (game_stable) {
+			// check if entity is submerged (fallen into water)
+			// then, check if a lemon has been crushed
+			for (Entity& entity: entities) {
+				if (map.map[entity.grid_y * GRID_W + entity.grid_x] == 0) {
+					entity.submerged = true;
+					if (entity.entity_type == 2) {
+						level_ended = true;
+						input_allowed = false;
+					}
+				}
+				if (entity.entity_type == 1 && entity.flag == 1) {
+					// game won!
+					level_ended = true;
+					input_allowed = false;
+					winning_timer += elapsed;
+				}
+			}
+
+
+
+			// comsume input. only take one command
+			// Key: 1 = +X, 2 = +Y, 3 = -X, 4 = -Y
+
+			if (input_allowed) {
+				if (left.pressed) {
+					std::cout << "left" << std::endl;
+					entity_moving[player_idx] = 3;
+				} else if (right.pressed) {
+					std::cout << "right" << std::endl;
+					entity_moving[player_idx] = 1;
+				} else if (down.pressed) {
+					std::cout << "down" << std::endl;
+					entity_moving[player_idx] = 4;
+				} else if (up.pressed) {
+					std::cout << "up" << std::endl;
+					entity_moving[player_idx] = 2;
+				} else if (reset.pressed) {
+					std::cout << "reset game!!" << std::endl;
+					// RESET GAME
+					reset_level();
+				}
+			}
+
+			if (level_ended) {
+				if (reset.pressed) {
+					std::cout << "reset game!!" << std::endl;
+					// RESET GAME
+					reset_level();
+				}
+			}
+
+			auto dir_to_delta_x = [](int dir) {
+				if (dir == 3) return -1;
+				if (dir == 1) return 1;
+				return 0;
+			};
+
+			auto dir_to_delta_y = [](int dir) {
+				if (dir == 4) return -1;
+				if (dir == 2) return 1;
+				return 0;
+			};
+
+			std::vector<bool> processed = std::vector<bool>(entities.size());
+
+			// make a recursive push function
+			auto push = [&](auto &&self, uint32_t idx) {
+				if (entity_moving[idx] == 0) {
+					// stopped.
+					return false;
+				}
+				processed[idx] = true;
+				assert(entity_moving[idx] <= 4 && entity_moving[idx] >= 1);
+				int target_x = entities[idx].grid_x + dir_to_delta_x(entity_moving[idx]);
+				int target_y = entities[idx].grid_y + dir_to_delta_y(entity_moving[idx]);
+
+				if (target_x < 0 || target_x >= GRID_W || target_y < 0 || target_y >= GRID_H) {
+					entity_moving[idx] = 0;
+					return false;
+				}
+
+				// look for tile occupation
+				uint8_t target_tile = map.map[target_y * GRID_W + target_x];
+				if (target_tile == 3) {
+					entity_moving[idx] = 0;
+					return false;
+				}
+				// look for other entities; if there is, try push it based on type
+				for (uint32_t other_idx = 0; other_idx < entities.size(); other_idx++) {
+					if (other_idx == idx) continue;
+					if (entities[other_idx].grid_x == target_x && entities[other_idx].grid_y == target_y) {
+						// Pushable when:
+						// Player   --> Lemon | Ice cube
+						// Ice cube --> Lemon
+						if (entities[idx].entity_type == 2 || (entities[idx].entity_type == 0 && entities[other_idx].entity_type == 1)) {
+							// make it moving
+							entity_moving[other_idx] = entity_moving[idx];
+							// recursively call push
+							bool push_succ = self(self, other_idx);
+
+							// if failed, but I am an ice cube and target is a lemon
+							if (!push_succ) {
+								if (entities[other_idx].entity_type == 1 && entities[idx].entity_type == 0) {
+									// icecube + lemon
+									entities[other_idx].flag = 1;
+								} else {
+									entity_moving[idx] = 0;
+									return false;
+								}
+							}
+							// else: the target has been pushed away.
+						} else {
+							// cannot push
+							entity_moving[idx] = 0;
+							return false;
+						}
+					}
+				}
+				// move to new position
+				entities[idx].grid_x = target_x;
+				entities[idx].grid_y = target_y;
+
+				// check if ground is ice or not
+				if (map.map[target_y * GRID_W + target_x] != 1) {
+					// Stop moving.
+					entity_moving[idx] = 0;
+				}
+				// yay, moved!
+				return true;
+			};
+
+			// while not all movements are consumed, run
+
+			for (uint32_t idx = 0; idx < entities.size(); idx++) {
+				if (entity_moving[idx] && !processed[idx]) {
+					game_stable = false;
+					push(push, idx);
+				}
+			}
+		}
+
+		// Step the entity positions
+		for (Entity& entity: entities) {
+			entity.step_pos(elapsed);
+		}
+
+	}
 
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+
+
+
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -369,20 +619,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	// background color (water)
 	ppu.background_color = glm::u8vec4(81, 130, 255, 0);
-
-	//tilemap gets recomputed every frame as some weird plasma thing:
-	//NOTE: don't do this in your game! actually make a map or something :-)
-	// for (uint32_t y = 0; y < PPU466::BackgroundHeight; ++y) {
-	// 	for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
-	// 		//TODO: make weird plasma thing
-	// 		ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
-	// 	}
-	// }
-
-	//background scroll:
-	ppu.background_position.x = int32_t(-0.5f * player_at.x);
-	ppu.background_position.y = int32_t(-0.5f * player_at.y);
-
 
 	{ // Draw the entities as sprites
 		// Step 1. cleaning. restore to tile 255
@@ -397,7 +633,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 		// sort `order` based on entities grid y. Results in 
 		std::sort(order.begin(), order.end(), [&](const uint32_t& a, const uint32_t& b) {
-			return entities[a].grid_y > entities[b].grid_y;
+			return entities[a].grid_y > entities[b].grid_y || (entities[a].grid_y == entities[b].grid_y && entities[b].entity_type == 1);
 		});
 
 		// Step 3. drawing. 
@@ -405,7 +641,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// to store sprites! So we process them in the dedicated objects, then copy them to PPU.
 		int pt = 0;
 		for (uint32_t idx: order) {
-			entities[idx].repose(0.0f);    // 0.0f is a temporary number
+			entities[idx].repose(anim_timer);    // 0.0f is a temporary number
 			for (PPU466::Sprite spr: entities[idx].sprites) {
 				if (pt >= 64) break;      // reached limit, stop drawing
 				ppu.sprites[pt] = spr;
@@ -418,23 +654,27 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			// print a warning
 			std::cout << "More sprites to draw than PPU supports; aborting halfway\n";
 		}
+
+		// Step 4a. override some background with prompts
+		{
+			for (int y = 0; y < 3; y++) {
+				for (int x = 0; x < 10; x++) {
+					ppu.background[y * PPU466::BackgroundWidth + x] = 16 * (13 - y) + x;
+				}
+			}
+		}
+
+		// Step 4b. overriding winning animation...
+		if (winning_timer > 0.0f) {
+			int progress = static_cast<int>(winning_timer * 8.0f);
+			progress = std::min(16, progress);
+			for (int x = 0; x < progress; x++) {
+				ppu.background[28 * PPU466::BackgroundWidth + x + 8] = 128 + x;
+				ppu.background[27 * PPU466::BackgroundWidth + x + 8] = 144 + x;
+				ppu.background[26 * PPU466::BackgroundWidth + x + 8] = 160 + x;
+			}
+		}
 	}
-
-	// //player sprite:
-	// ppu.sprites[0].x = int8_t(player_at.x);
-	// ppu.sprites[0].y = int8_t(player_at.y);
-	// ppu.sprites[0].index = 32;
-	// ppu.sprites[0].attributes = 7;
-
-	// //some other misc sprites:
-	// for (uint32_t i = 1; i < 63; ++i) {
-	// 	float amt = (i + 2.0f * background_fade) / 62.0f;
-	// 	ppu.sprites[i].x = int8_t(0.5f * float(PPU466::ScreenWidth) + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * float(PPU466::ScreenWidth));
-	// 	ppu.sprites[i].y = int8_t(0.5f * float(PPU466::ScreenHeight) + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * float(PPU466::ScreenWidth));
-	// 	ppu.sprites[i].index = 32;
-	// 	ppu.sprites[i].attributes = 6;
-	// 	if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
-	// }
 
 	//--- actually draw ---
 	ppu.draw(drawable_size);
