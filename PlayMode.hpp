@@ -76,7 +76,7 @@ struct PlayMode : Mode {
 	float winning_timer = 0.0f;
 
 	//entities and maps
-	int current_level = 1;
+	int current_level = 0;
 	bool game_lost = false;
 	WorldMap map;
 	std::vector<Entity> entities = { };

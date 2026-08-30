@@ -190,7 +190,9 @@ WorldMap::WorldMap() {
 WorldMap::WorldMap(int level_index) {
 	// hardcoded to read LV02
 	// std::array<uint8_t, 15 * 16> map = { };
-	if (level_index == 1)
+	if (level_index == 0)
+		map = Levels::MAP_LEVEL_LV00;
+	else if (level_index == 1)
 		map = Levels::MAP_LEVEL_LV01;
 	else if (level_index == 2)
 		map = Levels::MAP_LEVEL_LV02;
@@ -257,7 +259,7 @@ PlayMode::PlayMode() {
 
 	{ // STEP 2: read the levels, make map, draw the background
 		// use default constructor
-		reset_level(1);
+		reset_level(0);
 	}
 }
 
@@ -276,6 +278,7 @@ void PlayMode::reset_level(int level_index) {
 	// My attempt to use alias to make the code compact failed,
 	// and this will copy the vectors, so it's not memory efficient.
 	const std::vector<std::vector<std::array< uint8_t, 3>>> level_catalog = {
+		Levels::ENTITY_LIST_LEVEL_LV00,
 		Levels::ENTITY_LIST_LEVEL_LV01,
 		Levels::ENTITY_LIST_LEVEL_LV02,
 		Levels::ENTITY_LIST_LEVEL_LV03,
@@ -285,8 +288,8 @@ void PlayMode::reset_level(int level_index) {
 	};
 	// gracefully fail if the level overflows
 	if (level_index > level_catalog.size()) return;
-	for (uint32_t idx = 0; idx < level_catalog[level_index - 1].size(); idx++) {
-		std::array<uint8_t, 3> entity_def = level_catalog[level_index - 1][idx];
+	for (uint32_t idx = 0; idx < level_catalog[level_index].size(); idx++) {
+		std::array<uint8_t, 3> entity_def = level_catalog[level_index][idx];
 		entities.push_back(Entity(entity_def[2], entity_def[0], entity_def[1]));
 		entities[entities.size() - 1].repose(0.0f);
 	}

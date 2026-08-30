@@ -1,4 +1,5 @@
 {
+    "LV00": "sprites/levels/map_intro.png",
     "LV01": "sprites/levels/map_tutorial.png",
     "LV02": "sprites/levels/map_hard.png",
     "LV03": "sprites/levels/map_last.png",
