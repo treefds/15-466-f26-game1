@@ -40,8 +40,8 @@ DESIGN NOTES (aka. hints, hopefully **not needed** for clearing the game)
 - Level 2 made it impossible to crush the lemon between a wall and an ice cube. Sliding the player towards the lemon will push the lemon into a non-recoverable place. The solution is to get one of the ice cubes to the bottom, then crush the lemon inbetween.
 - Level 3 is similar to Level 2 except that it has 3 cubes and no walls. The trick is to stop one ice cube in the middle (directly above the lemon) by using another cube to block its way...
 - Level 4 introduces floating ice. Again the game forces you to run into the mechanic. The rest is standard sokoban. The lemon has to be pushed around and transported to the center to be crushed vertically.
-- Level 5 expands on Level 4.
-- I expect the game to be beatable in about 8 minutes?
+- Level 5 expands on Level 4. It's hard.
+- I expect the game to be beatable in about 10 minutes?
 
 ##### Compiling the game
 
