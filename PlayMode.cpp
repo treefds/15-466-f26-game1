@@ -568,7 +568,6 @@ void PlayMode::update(float elapsed) {
 					entity_moving[player_idx] = 2;
 					entities[player_idx].flag = 2;
 				} else if (reset.pressed) {
-					std::cout << "reset game!!" << std::endl;
 					// RESET GAME
 					reset_level(current_level);
 				}
@@ -698,7 +697,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//--- set ppu state based on game state ---
 
 	// background color (water)
-	ppu.background_color = glm::u8vec4(81, 130, 255, 0);
+	ppu.background_color = glm::u8vec4(65, 146, 195, 0);
 
 	{ // Draw the entities as sprites
 		// Step 1. cleaning. restore to tile 255
