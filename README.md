@@ -2,7 +2,7 @@
 
 Author: Runkun Chen (runkunc)
 
-Design: A Sokoban-inspired puzzle game about crushing lemons into ice cubes on slippery surface.
+Design: A Sokoban-inspired puzzle game about crushing lemons between ice cubes on slippery surface.
 
 The game has a total of 6 levels. The palette is restricted to NES colors.
 
@@ -34,33 +34,33 @@ The game mechanic and goal should be fairly self-contained and obvious.
 - `R`: reset current level
 - `P`: **Skip current level**
 
-DESIGN NOTES (aka. hints, hopefully **not needed** for clearing the game)
-- Level 0 introduces the game goal (crushing lemons). There is no alternative path; the player always ends up crushing the lemon once they push the cube.
-- Level 1 introduces some distractors and also requires lemon pushing. This was the original tutorial level, but it fails to convey the game goal, so it was repurposed.
+An experienced puzzle game player is expected to beat it in about 10 minutes?
+
+DESIGN NOTES (not required for playing, but please read if stuck)
+- The goal of the game is to crush the lemon in every level. A lemon can be crushed by being squeezed between an ice cube and another ice cube or wall.
+- Player can push icecubes/lemon; icecube can push lemon, but not other icecubes; lemon can push nothing.
+- Level 0 is the tutorial level. There is only one path which forces the player to see all basic game mechanics.
+- Level 1 requires lemon pushing. This was the original tutorial level, but it fails to convey the game goal, so it was repurposed.
 - Level 2 made it impossible to crush the lemon between a wall and an ice cube. Sliding the player towards the lemon will push the lemon into a non-recoverable place. The solution is to get one of the ice cubes to the bottom, then crush the lemon inbetween.
 - Level 3 is similar to Level 2 except that it has 3 cubes and no walls. The trick is to stop one ice cube in the middle (directly above the lemon) by using another cube to block its way...
 - Level 4 introduces floating ice. Again the game forces you to run into the mechanic. The rest is standard sokoban. The lemon has to be pushed around and transported to the center to be crushed vertically.
-- Level 5 expands on Level 4. It's hard.
-- I expect the game to be beatable in about 10 minutes?
+- Level 5 expands on Level 4. It's kinda hard.
 
 ##### Compiling the game
 
-The repository should come with built assets. But if one would still like to run the assets pipeline:
+The repository should come with built assets (so you don't have to run it again). But if one would still like to run the assets pipeline:
 ```bash
 python build_assets.py
 ```
-
-It is workdir sensitive. `cd` into the repository before executing it.
-You will also need `PIL` and `numpy` installed for Python (`pip install pillow numpy`). 
+Notes:
+- It is workdir sensitive. `cd` into the repository before executing it.
+- You will also need `PIL` and `numpy` installed for Python (`pip install pillow numpy`). 
 
 Then, compile the game and run:
 
 ```bash
 node Maekfile.js && ./dist/game
 ```
-
-
-
 ----
 
 This game was built with [NEST](NEST.md).

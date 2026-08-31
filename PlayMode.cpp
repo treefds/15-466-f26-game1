@@ -19,7 +19,7 @@ Entity::Entity(int etype, int x, int y) {
 	grid_x = x;
 	grid_y = y;
 	// set starting display position to just the corresponding world pos
-	display_pos = glm::vec2(x * 16.0f, y * 16.0f);
+	display_pos = glm::vec2(x * PIXELS_PER_GRID, y * PIXELS_PER_GRID);
 
 	// Read the animation definitions and load them to sprites.
 	if (entity_type == 0) {
@@ -31,7 +31,7 @@ Entity::Entity(int etype, int x, int y) {
 		}
 		sprites[0].attributes = Assets::BCOL_ICETOP >> 8;   // >> 8 because they are stored rightshifted
 		sprites[1].attributes = Assets::BCOL_ICETOP >> 8;
-		for (int i = 2; i < 6; i++) sprites[i].attributes = Assets::BCOL_WALL >> 8;
+		for (uint32_t i = 2; i < 6; i++) sprites[i].attributes = Assets::BCOL_WALL >> 8;
 	} else if (entity_type == 1) {
 		// Lemon
 		sprites = std::vector<PPU466::Sprite>(Assets::ANIM_DEF_LEMON.size());
@@ -39,7 +39,7 @@ Entity::Entity(int etype, int x, int y) {
 		for (uint32_t i = 0; i < sprites.size(); ++i) {
 			sprites[i].index = Assets::ANIM_DEF_LEMON[i];
 		}
-		for (int i = 0; i < 4; i++) sprites[i].attributes = Assets::BCOL_LEMON >> 8;
+		for (uint32_t i = 0; i < 4; i++) sprites[i].attributes = Assets::BCOL_LEMON >> 8;
 	} else if (entity_type == 2) {
 		// Player
 		sprites = std::vector<PPU466::Sprite>(Assets::ANIM_DEF_PLAYER_DOWN.size());
@@ -47,7 +47,7 @@ Entity::Entity(int etype, int x, int y) {
 		for (uint32_t i = 0; i < sprites.size(); ++i) {
 			sprites[i].index = Assets::ANIM_DEF_PLAYER_DOWN[i];
 		}
-		for (int i = 0; i <= 10; i++) sprites[i].attributes = Assets::BCOL_SNOWMAN >> 8;
+		for (uint32_t i = 0; i <= 10; i++) sprites[i].attributes = Assets::BCOL_SNOWMAN >> 8;
 		sprites[6].attributes = Assets::BCOL_CARROT >> 8;
 	}
 }
@@ -138,8 +138,8 @@ void Entity::repose(float time, int facing = 0) {
 			}
 		}
 		// if the player is moving, animate the foot
-		if (std::abs(grid_x * 16.0f - display_pos.x) > 0.01f) {
-			int salt = static_cast<int>(std::abs(grid_x * 16.0f - display_pos.x) / 5.0f) % 3;
+		if (std::abs(grid_x * PIXELS_PER_GRID - display_pos.x) > 0.01f) {
+			int salt = static_cast<int>(std::abs(grid_x * PIXELS_PER_GRID - display_pos.x) / 5.0f) % 3;
 			if (salt == 1) {
 				sprites[9].y += 1;
 			}
@@ -147,8 +147,8 @@ void Entity::repose(float time, int facing = 0) {
 				sprites[10].y += 1;
 			}
 		}
-		if (std::abs(grid_y * 16.0f - display_pos.y) > 0.01f) {
-			int salt = static_cast<int>(std::abs(grid_y * 16.0f - display_pos.y) / 5.0f) % 3;
+		if (std::abs(grid_y * PIXELS_PER_GRID - display_pos.y) > 0.01f) {
+			int salt = static_cast<int>(std::abs(grid_y * PIXELS_PER_GRID - display_pos.y) / 5.0f) % 3;
 			if (salt == 1) {
 				sprites[9].y += 1;
 			}
@@ -156,7 +156,6 @@ void Entity::repose(float time, int facing = 0) {
 				sprites[10].y += 1;
 			}
 		}
-		
 
 		if (submerged) {
 			sprites[4].index = sprites[5].index = sprites[9].index = sprites[10].index = 255;
@@ -167,19 +166,19 @@ void Entity::repose(float time, int facing = 0) {
 
 void Entity::step_pos(float elapsed) {
 	const float speed = 60.0f;
-	if (grid_x * 16.0f - display_pos.x > 0.01f) {
-		display_pos.x = std::min(grid_x * 16.0f, display_pos.x + speed * elapsed);
-	} else if (grid_x * 16.0f - display_pos.x < -0.01f) {
-		display_pos.x = std::max(grid_x * 16.0f, display_pos.x - speed * elapsed);
+	if (grid_x * PIXELS_PER_GRID - display_pos.x > 0.01f) {
+		display_pos.x = std::min(grid_x * PIXELS_PER_GRID, display_pos.x + speed * elapsed);
+	} else if (grid_x * PIXELS_PER_GRID - display_pos.x < -0.01f) {
+		display_pos.x = std::max(grid_x * PIXELS_PER_GRID, display_pos.x - speed * elapsed);
 	} else {
-		display_pos.x = grid_x * 16.0f;
+		display_pos.x = grid_x * PIXELS_PER_GRID;
 	}
-	if (grid_y * 16.0f - display_pos.y > 0.01f) {
-		display_pos.y = std::min(grid_y * 16.0f, display_pos.y + speed * elapsed);
-	} else if (grid_y * 16.0f - display_pos.y < -0.01f) {
-		display_pos.y = std::max(grid_y * 16.0f, display_pos.y - speed * elapsed);
+	if (grid_y * PIXELS_PER_GRID - display_pos.y > 0.01f) {
+		display_pos.y = std::min(grid_y * PIXELS_PER_GRID, display_pos.y + speed * elapsed);
+	} else if (grid_y * PIXELS_PER_GRID - display_pos.y < -0.01f) {
+		display_pos.y = std::max(grid_y * PIXELS_PER_GRID, display_pos.y - speed * elapsed);
 	} else {
-		display_pos.y = grid_y * 16.0f;
+		display_pos.y = grid_y * PIXELS_PER_GRID;
 	}
 }
 
@@ -206,40 +205,7 @@ WorldMap::WorldMap(int level_index) {
 		map = Levels::MAP_LEVEL_LV06;
 }
 
-
-
-
 PlayMode::PlayMode() {
-	{ //use tiles 0-16 as some weird dot pattern thing:
-		std::array< uint8_t, 8*8 > distance;
-		for (uint32_t y = 0; y < 8; ++y) {
-			for (uint32_t x = 0; x < 8; ++x) {
-				float d = glm::length(glm::vec2((x + 0.5f) - 4.0f, (y + 0.5f) - 4.0f));
-				d /= glm::length(glm::vec2(4.0f, 4.0f));
-				distance[x+8*y] = uint8_t(std::max(0,std::min(255,int32_t( 255.0f * d ))));
-			}
-		}
-		for (uint32_t index = 0; index < 16; ++index) {
-			PPU466::Tile tile;
-			uint8_t t = uint8_t((255 * index) / 16);
-			for (uint32_t y = 0; y < 8; ++y) {
-				uint8_t bit0 = 0;
-				uint8_t bit1 = 0;
-				for (uint32_t x = 0; x < 8; ++x) {
-					uint8_t d = distance[x+8*y];
-					if (d > t) {
-						bit0 |= (1 << x);
-					} else {
-						bit1 |= (1 << x);
-					}
-				}
-				tile.bit0[y] = bit0;
-				tile.bit1[y] = bit1;
-			}
-			ppu.tile_table[index] = tile;
-		}
-	}
-
 	{ // STEP 1: override the tile table with our tiles from Assets.hpp...
 		// for every single tile (0-255)
 		for (uint32_t index = 0; index < 16 * 16; ++index) {
@@ -248,7 +214,6 @@ PlayMode::PlayMode() {
 			tile.bit1 = Assets::SPRITESHEET_TILES_1[index];
 			ppu.tile_table[index] = tile;
 		}
-
 		// for every color. ONLY 8 COLORS
 		// hardcoded magic number here; if it got wrong, we will have fancy buffer overflow glitches
 		// just like NES !? 
@@ -264,6 +229,7 @@ PlayMode::PlayMode() {
 }
 
 PlayMode::~PlayMode() {
+
 }
 
 // Fully reset this level!
@@ -497,8 +463,8 @@ void PlayMode::update(float elapsed) {
 		// Only handle input if the game anim interpolation is finished.
 		bool game_stable = true;
 		for (Entity& entity: entities) {
-			if (abs(entity.grid_x * 16.0f - entity.display_pos.x) > 0.01 || 
-				abs(entity.grid_y * 16.0f - entity.display_pos.y) > 0.01) {
+			if (abs(entity.grid_x * PIXELS_PER_GRID - entity.display_pos.x) > 0.01 || 
+				abs(entity.grid_y * PIXELS_PER_GRID - entity.display_pos.y) > 0.01) {
 					// game not ready to accept input.
 					game_stable = false;
 					break;
@@ -514,10 +480,10 @@ void PlayMode::update(float elapsed) {
 			if (entity_moving[i]) input_allowed = false;
 		}
 
-		if (player_idx == -1) break;
 		// entered an undefined level! Break from doing any updates.
 		// make the game enter a softlock.
 		// assert(player_idx != -1);
+		if (player_idx == -1) break;
 
 		bool level_ended = false;
 
@@ -547,7 +513,6 @@ void PlayMode::update(float elapsed) {
 							input_allowed = false;
 						}
 					}
-					
 				}
 				if (entity.entity_type == 1 && entity.flag == 1) {
 					// game won!
@@ -557,11 +522,8 @@ void PlayMode::update(float elapsed) {
 				}
 			}
 
-
-
 			// comsume input. only take one command
 			// Key: 1 = +X, 2 = +Y, 3 = -X, 4 = -Y
-
 			if (input_allowed) {
 				if (left.pressed) {
 					entity_moving[player_idx] = 3;
@@ -594,6 +556,7 @@ void PlayMode::update(float elapsed) {
 				}
 			}
 
+			// helper functions to convert the 1--4 integer flags to deltas.
 			auto dir_to_delta_x = [](int dir) {
 				if (dir == 3) return -1;
 				if (dir == 1) return 1;
@@ -606,6 +569,8 @@ void PlayMode::update(float elapsed) {
 				return 0;
 			};
 
+			// we don't want to process one entity twice in one gamestep;
+			// so we track which ones have been processed.
 			std::vector<bool> processed = std::vector<bool>(entities.size());
 
 			// make a recursive push function
@@ -619,18 +584,20 @@ void PlayMode::update(float elapsed) {
 					entity_moving[idx] = 0;
 					return true;
 				}
-
+				// set true to processed flag
 				processed[idx] = true;
 				assert(entity_moving[idx] <= 4 && entity_moving[idx] >= 1);
+				// calculate target position
 				int target_x = entities[idx].grid_x + dir_to_delta_x(entity_moving[idx]);
 				int target_y = entities[idx].grid_y + dir_to_delta_y(entity_moving[idx]);
 
+				// the target position is out of bound
 				if (target_x < 0 || target_x >= GRID_W || target_y < 0 || target_y >= GRID_H) {
 					entity_moving[idx] = 0;
 					return false;
 				}
 
-				// look for tile occupation
+				// look for tile occupation. If there's a wall, stop
 				uint8_t target_tile = map.map[target_y * GRID_W + target_x];
 				if (target_tile == 3) {
 					entity_moving[idx] = 0;
@@ -643,7 +610,7 @@ void PlayMode::update(float elapsed) {
 						// Pushable when:
 						// Player   --> Lemon | Ice cube
 						// Ice cube --> Lemon
-						// Anything --> submerged ice cube
+						// Anything --> submerged ice cube (walk on it)
 						if (
 							entities[idx].entity_type == 2 || 
 							(entities[idx].entity_type == 0 && entities[other_idx].entity_type == 1) ||
@@ -672,7 +639,9 @@ void PlayMode::update(float elapsed) {
 						}
 					}
 				}
-				// move to new position
+				// If the function hasn't encountered return false by now,
+				// the push/move is then successful.
+				// move to new position.
 				entities[idx].grid_x = target_x;
 				entities[idx].grid_y = target_y;
 
@@ -684,7 +653,7 @@ void PlayMode::update(float elapsed) {
 						if (entity.grid_x == target_x && entity.grid_y == target_y && entity.entity_type == 0 && entity.submerged)
 							has_floating_ice = true;
 					}
-					// Stop moving.
+					// Stop moving if the ground is not slippery.
 					if (!has_floating_ice)
 						entity_moving[idx] = 0;
 				}
@@ -692,8 +661,7 @@ void PlayMode::update(float elapsed) {
 				return true;
 			};
 
-			// while not all movements are consumed, run
-
+			// while not all movements are consumed, keep `game_stable` flag false
 			for (uint32_t idx = 0; idx < entities.size(); idx++) {
 				if (entity_moving[idx] && !processed[idx]) {
 					game_stable = false;
@@ -720,7 +688,7 @@ void PlayMode::update(float elapsed) {
 	// If winning timer > 4.0s, jump to next level
 	if (winning_timer > 4.0) {
 		current_level += 1;
-		current_level = current_level > total_level ? 6 : current_level;
+		current_level = current_level > total_level ? total_level : current_level;
 		reset_level(current_level);
 		winning_timer = 0.0;
 	}
@@ -747,8 +715,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// sort `order` based on entities grid y. Results in 
 		std::sort(order.begin(), order.end(), [&](const uint32_t& a, const uint32_t& b) {
 			// special case: when lemon and cube overlaps, prioritize cube
-			return entities[a].grid_y > entities[b].grid_y || 
-				(entities[a].submerged && !entities[b].submerged);
+			int ya = entities[a].grid_y + GRID_H * entities[a].submerged, yb = entities[b].grid_y + GRID_H * entities[b].submerged;
+			return ya > yb || (ya == yb && entities[a].entity_type == 1);
 		});
 
 		// Step 3. drawing. 

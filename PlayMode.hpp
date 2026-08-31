@@ -6,8 +6,9 @@
 #include <vector>
 #include <deque>
 
-const uint32_t GRID_H = PPU466::BackgroundHeight / 4;
-const uint32_t GRID_W = PPU466::BackgroundWidth / 4;
+constexpr uint32_t GRID_H = PPU466::BackgroundHeight / 4;
+constexpr uint32_t GRID_W = PPU466::BackgroundWidth / 4;
+const float PIXELS_PER_GRID = 16.0f;
 
 struct Entity {
 	// A game entity is either a lemon, or a cube, or the player.
