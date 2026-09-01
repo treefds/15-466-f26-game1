@@ -1,4 +1,4 @@
-# Lemonbanza
+# Lemonban
 
 Author: Runkun Chen (runkunc)
 
@@ -34,17 +34,26 @@ The game mechanic and goal should be fairly self-contained and obvious.
 - `R`: reset current level
 - `P`: **Skip current level**
 
+In a nutshell: Push the ice cubes against lemons.
+
 An experienced puzzle game player is expected to beat it in about 10 minutes?
 
-DESIGN NOTES (not required for playing, but please read if stuck)
-- The goal of the game is to crush the lemon in every level. A lemon can be crushed by being squeezed between an ice cube and another ice cube or wall.
-- Player can push icecubes/lemon; icecube can push lemon, but not other icecubes; lemon can push nothing.
-- Level 0 is the tutorial level. There is only one path which forces the player to see all basic game mechanics.
-- Level 1 requires lemon pushing. This was the original tutorial level, but it fails to convey the game goal, so it was repurposed.
-- Level 2 made it impossible to crush the lemon between a wall and an ice cube. Sliding the player towards the lemon will push the lemon into a non-recoverable place. The solution is to get one of the ice cubes to the bottom, then crush the lemon inbetween.
-- Level 3 is similar to Level 2 except that it has 3 cubes and no walls. The trick is to stop one ice cube in the middle (directly above the lemon) by using another cube to block its way...
-- Level 4 introduces floating ice. Again the game forces you to run into the mechanic. The rest is standard sokoban. The lemon has to be pushed around and transported to the center to be crushed vertically.
-- Level 5 expands on Level 4. It's kinda hard.
+<details>
+<summary>DESIGN NOTES (not required for playing, but please read if stuck)
+</summary>
+<ul>
+<li> The goal of the game is to crush the lemon in every level. A lemon can be crushed by being squeezed between an ice cube and another ice cube or wall.
+<li> Player can push ice cubes/lemons; ice cubes can push lemons, but not other ice cubes; lemons can push nothing.
+<li> Level 0 is the tutorial level. There is only one path which forces the player to see all basic game mechanics.
+<li> Level 1 introduces lemon pushing. This was the original tutorial level, but it failed to convey the goal clearly, so it was repurposed.
+<li> Level 2 is concerned with sliding. Sliding the player towards the lemon will push the lemon into a non-recoverable place. The solution is to get one of the ice cubes to the bottom, then crush the lemon inbetween.
+<li> Level 3 is similar to Level 2 except that it has 3 cubes and no walls. One would need to align an ice cube vertically with the lemon by using another cube to block it from slipping too far.
+<li> Level 4 introduces floating ice. Again the game forces you to run into the mechanic. The rest is standard sokoban. The lemon has to be pushed around and transported to the center to be crushed vertically.
+<li> Level 5 expands on Level 4. It's kinda hard.
+<li> The game was supposed to be about making lemonade; the player would have to push the squeezed lemon+icecube into the ocean to make it all lemonade. But in terms of game design, it was too unintuitive, so now there's only lemon squeezing left.
+<li> Ice floor is very common in Sokoban games; but vibe-wise I think I took the most inspiration from A Monster's Expedition...
+</ul>
+</details>
 
 ##### Compiling the game
 
@@ -67,4 +76,4 @@ This game was built with [NEST](NEST.md).
 
 ![Concept Art](media/concept_art.png)
 
-<div align="center">My concept art</div>
+<div align="center">My concept art. The lemon monster was sadly unused.</div>

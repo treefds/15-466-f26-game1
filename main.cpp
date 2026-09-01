@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 
 	//create window:
 	Mode::window = SDL_CreateWindow(
-		"gp26 game1: lemonbanza",
+		"gp26 game1: lemonban",
 		2*PPU466::ScreenWidth + 8, 2*PPU466::ScreenHeight + 8,
 		SDL_WINDOW_OPENGL
 		| SDL_WINDOW_RESIZABLE //uncomment to allow resizing
